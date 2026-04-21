@@ -1,22 +1,256 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #0a0a0f;
+        font-family: "Inter", "Noto Sans JP", system-ui, sans-serif;
+        color: #fafafa;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Persistent global frame */
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        background:
+          radial-gradient(1400px 900px at 50% 0%, #12121a 0%, #0a0a0f 55%),
+          #0a0a0f;
+      }
+
+      /* Scenes stack with absolute positioning so clip-driven visibility crossfades */
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+
+      /* z-order ensures later scenes cross over earlier during overlap */
+      #scene-title     { z-index: 1; }
+      #scene-openai    { z-index: 2; }
+      #scene-anthropic { z-index: 3; }
+      #scene-google    { z-index: 4; }
+      #scene-end       { z-index: 5; }
+
+      /* ---------- Persistent header / footer (part of each scene) ---------- */
+      .hud {
+        position: absolute;
+        left: 80px; right: 80px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #71717a;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud--top { top: 60px; }
+      .hud--bot { bottom: 60px; }
+      .hud__dot {
+        display: inline-block;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: #c7c7d1;
+        margin-right: 14px;
+        vertical-align: middle;
+      }
+
+      /* ---------- Scene 1: Title ---------- */
+      #scene-title .body {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 160px;
+      }
+      .title-eyebrow {
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #c7c7d1;
+        margin-bottom: 40px;
+      }
+      .title-main {
+        font-size: 180px;
+        font-weight: 700;
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+        color: #fafafa;
+        margin-bottom: 48px;
+      }
+      .title-main .accent {
+        color: #10a37f;
+      }
+      .title-companies {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        font-size: 44px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: #fafafa;
+      }
+      .title-companies .sep {
+        color: #52525b;
+        font-weight: 400;
+      }
+      .title-companies .c-openai    { color: #10a37f; }
+      .title-companies .c-anthropic { color: #d97757; }
+      .title-companies .c-google    { color: #4285f4; }
+      .title-date {
+        margin-top: 56px;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        color: #71717a;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- Section scenes (OpenAI / Anthropic / Google) ---------- */
+      .section-body {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 620px 1fr;
+        gap: 80px;
+        padding: 180px 160px 160px;
+      }
+      .section-left {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+      .section-brand {
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: #71717a;
+        margin-bottom: 36px;
+        font-variant-numeric: tabular-nums;
+      }
+      .section-name {
+        font-size: 140px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 0.95;
+        color: #fafafa;
+        margin-bottom: 48px;
+      }
+      .section-accent {
+        width: 420px;
+        height: 6px;
+        border-radius: 3px;
+      }
+      .section-accent--openai    { background: #10a37f; }
+      .section-accent--anthropic { background: #d97757; }
+      .section-accent--google {
+        background: linear-gradient(90deg, #4285f4 0%, #34a853 35%, #fbbc04 70%, #ea4335 100%);
+      }
+      .section-kicker {
+        margin-top: 36px;
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: #c7c7d1;
+        max-width: 440px;
+      }
+
+      .news-list {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        align-self: center;
+      }
+      .news-item {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 32px;
+        padding: 24px 28px 24px 28px;
+        border-top: 1px solid #1f1f27;
+        align-items: start;
+      }
+      .news-item:last-child {
+        border-bottom: 1px solid #1f1f27;
+      }
+      .news-date {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: #c7c7d1;
+        font-variant-numeric: tabular-nums;
+        padding-top: 6px;
+      }
+      .section-openai    .news-date { color: #10a37f; }
+      .section-anthropic .news-date { color: #d97757; }
+      .section-google    .news-date { color: #4285f4; }
+      .news-body { min-width: 0; }
+      .news-title {
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: #fafafa;
+        line-height: 1.22;
+        margin-bottom: 8px;
+      }
+      .news-desc {
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: #c7c7d1;
+        max-width: 820px;
+      }
+
+      /* ---------- Scene 5: Closing ---------- */
+      #scene-end .body {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 0 160px;
+      }
+      .end-line {
+        font-size: 120px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        color: #fafafa;
+        margin-bottom: 56px;
+        max-width: 1500px;
+      }
+      .end-line .em-openai    { color: #10a37f; }
+      .end-line .em-anthropic { color: #d97757; }
+      .end-line .em-google    { color: #4285f4; }
+      .end-next {
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #c7c7d1;
+        margin-bottom: 18px;
+      }
+      .end-date {
+        font-size: 40px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        color: #fafafa;
+        font-variant-numeric: tabular-nums;
       }
     </style>
   </head>
@@ -25,26 +259,300 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="46"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <!-- ============== SCENE 1 · Title (0 — 4.5s) ============== -->
+      <div
+        id="scene-title"
+        class="clip scene"
+        data-start="0"
+        data-duration="4.5"
+        data-track-index="1"
+      >
+        <div class="hud hud--top">
+          <span><span class="hud__dot"></span>AI NEWS DIGEST</span>
+          <span>REC · 2026.04</span>
         </div>
-      -->
+        <div class="body">
+          <div class="title-eyebrow">ここ半年の、AIという大河</div>
+          <h1 class="title-main">
+            半年で、<br /><span class="accent">景色は</span>変わった。
+          </h1>
+          <div class="title-companies">
+            <span class="c-openai">OpenAI</span>
+            <span class="sep">/</span>
+            <span class="c-anthropic">Anthropic</span>
+            <span class="sep">/</span>
+            <span class="c-google">Google</span>
+          </div>
+          <div class="title-date">2025.10 ——— 2026.04</div>
+        </div>
+        <div class="hud hud--bot">
+          <span>CH.00 — OPENING</span>
+          <span>ALL TIMES JST</span>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 2 · OpenAI (4.0 — 16.5s) ============== -->
+      <div
+        id="scene-openai"
+        class="clip scene section-openai"
+        data-start="4"
+        data-duration="12.5"
+        data-track-index="2"
+      >
+        <div class="hud hud--top">
+          <span><span class="hud__dot" style="background:#10a37f"></span>01 / 03</span>
+          <span>OPENAI</span>
+        </div>
+        <div class="section-body">
+          <div class="section-left">
+            <div class="section-brand">Chapter 01</div>
+            <h2 class="section-name">OpenAI</h2>
+            <div class="section-accent section-accent--openai"></div>
+            <p class="section-kicker">
+              GPT-5 系列の刻み直しに加え、Sora の拡大、科学・コード・セキュリティの
+              専門モデル化が同時進行。年間収益は 250 億ドルに到達。
+            </p>
+          </div>
+          <div class="news-list">
+            <div class="news-item">
+              <div class="news-date">2025.11</div>
+              <div class="news-body">
+                <div class="news-title">GPT-5.1 リリース</div>
+                <div class="news-desc">新しいフラッグシップ世代の展開が本格化。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2025.12</div>
+              <div class="news-body">
+                <div class="news-title">GPT-5.2 と Disney の 10 億ドル出資</div>
+                <div class="news-desc">ビジネスタスクを「専門家水準」に。Sora のライセンス提携も同時発表。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.01</div>
+              <div class="news-body">
+                <div class="news-title">Prism ——— 科学者のための LaTeX ワークスペース</div>
+                <div class="news-desc">論文執筆、引用管理、数式整形を AI が伴走する研究プレビュー。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.04</div>
+              <div class="news-body">
+                <div class="news-title">GPT-5.3-Codex / GPT-Rosalind / GPT-5.4-Cyber</div>
+                <div class="news-desc">コーディング、創薬・生命科学、サイバー防御の専門モデルを立て続けに投入。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hud hud--bot">
+          <span>CH.01 — OPENAI</span>
+          <span>SAN FRANCISCO, US</span>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 3 · Anthropic (16.0 — 28.5s) ============== -->
+      <div
+        id="scene-anthropic"
+        class="clip scene section-anthropic"
+        data-start="16"
+        data-duration="12.5"
+        data-track-index="1"
+      >
+        <div class="hud hud--top">
+          <span><span class="hud__dot" style="background:#d97757"></span>02 / 03</span>
+          <span>ANTHROPIC</span>
+        </div>
+        <div class="section-body">
+          <div class="section-left">
+            <div class="section-brand">Chapter 02</div>
+            <h2 class="section-name">Anthropic</h2>
+            <div class="section-accent section-accent--anthropic"></div>
+            <p class="section-kicker">
+              Opus 系列の毎月アップデートと、Mythos / Design / Cowork という製品展開。
+              モデルとプロダクトが同時に加速した半年。
+            </p>
+          </div>
+          <div class="news-list">
+            <div class="news-item">
+              <div class="news-date">2026.01</div>
+              <div class="news-body">
+                <div class="news-title">Claude Cowork ——— チーム向け研究プレビュー</div>
+                <div class="news-desc">月末にひっそり公開された、共同作業を前提とした Claude の新しいかたち。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.02.05</div>
+              <div class="news-body">
+                <div class="news-title">Claude Opus 4.6 リリース</div>
+                <div class="news-desc">推論と長文コンテキストに踏み込んだ大型アップデート。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.04.07</div>
+              <div class="news-body">
+                <div class="news-title">Claude Mythos Preview</div>
+                <div class="news-desc">11 社に限定公開。サイバー脆弱性の発見と修正に特化した最上位プレビュー。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.04.16 — 17</div>
+              <div class="news-body">
+                <div class="news-title">Claude Opus 4.7 と Claude Design</div>
+                <div class="news-desc">コード・画像理解・自己検証の強化版と、プロンプトで試作を描くデザインツール。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hud hud--bot">
+          <span>CH.02 — ANTHROPIC</span>
+          <span>SAN FRANCISCO, US</span>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 4 · Google (28.0 — 40.5s) ============== -->
+      <div
+        id="scene-google"
+        class="clip scene section-google"
+        data-start="28"
+        data-duration="12.5"
+        data-track-index="2"
+      >
+        <div class="hud hud--top">
+          <span><span class="hud__dot" style="background:#4285f4"></span>03 / 03</span>
+          <span>GOOGLE</span>
+        </div>
+        <div class="section-body">
+          <div class="section-left">
+            <div class="section-brand">Chapter 03</div>
+            <h2 class="section-name">Google</h2>
+            <div class="section-accent section-accent--google"></div>
+            <p class="section-kicker">
+              Gemini 3.1 が Intelligence Index で首位タイに。Chrome と検索に
+              「Personal Intelligence」が降りてきた、生活の側から攻める半年。
+            </p>
+          </div>
+          <div class="news-list">
+            <div class="news-item">
+              <div class="news-date">2026.01</div>
+              <div class="news-body">
+                <div class="news-title">CES 2026 ——— Gemini for Google TV</div>
+                <div class="news-desc">リビングの 4K パネルに Gemini が乗る、家電側からの AI 統合。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.02.19</div>
+              <div class="news-body">
+                <div class="news-title">Gemini 3.1 Pro ——— ベンチマーク総合 1 位タイ</div>
+                <div class="news-desc">Artificial Analysis の総合スコアで GPT-5.4 と並ぶ。339 モデル中の首位に浮上。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.03</div>
+              <div class="news-body">
+                <div class="news-title">Personal Intelligence / Lyria 3 Pro / Flash-Lite・Flash Live</div>
+                <div class="news-desc">Gmail・Photos 連携で応答がパーソナル化。音楽生成は 3 分の楽曲構成をサポート。</div>
+              </div>
+            </div>
+            <div class="news-item">
+              <div class="news-date">2026.04</div>
+              <div class="news-body">
+                <div class="news-title">Gemini in Chrome が日本を含む 7 ヶ国に拡大</div>
+                <div class="news-desc">オーストラリア、シンガポール、韓国、ベトナムなどにも同時展開。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hud hud--bot">
+          <span>CH.03 — GOOGLE</span>
+          <span>MOUNTAIN VIEW, US</span>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 5 · Closing (40.0 — 46.0s) ============== -->
+      <div
+        id="scene-end"
+        class="clip scene"
+        data-start="40"
+        data-duration="6"
+        data-track-index="1"
+      >
+        <div class="hud hud--top">
+          <span><span class="hud__dot"></span>AI NEWS DIGEST</span>
+          <span>END · 2026.04</span>
+        </div>
+        <div class="body">
+          <div class="end-line">
+            <span class="em-openai">OpenAI</span>、
+            <span class="em-anthropic">Anthropic</span>、<br />
+            <span class="em-google">Google</span>の競争は、加速している。
+          </div>
+          <div class="end-next">NEXT ——— GOOGLE I/O 2026</div>
+          <div class="end-date">2026.05.19 — 05.20</div>
+        </div>
+        <div class="hud hud--bot">
+          <span>CH.04 — CLOSING</span>
+          <span>TO BE CONTINUED</span>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      /* ---------- Scene 1 · Title (0 — 4.5) ---------- */
+      tl.from("#scene-title .hud--top > span", { y: -12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.1 }, 0.15);
+      tl.from("#scene-title .title-eyebrow",   { y: 20, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.35);
+      tl.from("#scene-title .title-main",      { y: 60, opacity: 0, duration: 0.9, ease: "expo.out" }, 0.6);
+      tl.from("#scene-title .title-companies span", { y: 28, opacity: 0, duration: 0.55, ease: "power3.out", stagger: 0.12 }, 1.15);
+      tl.from("#scene-title .title-date",      { opacity: 0, duration: 0.55, ease: "power2.out" }, 1.9);
+      tl.from("#scene-title .hud--bot > span", { y: 12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.1 }, 0.25);
+
+      /* ---------- Scene 2 · OpenAI (4.0 — 16.5) ---------- */
+      tl.from("#scene-openai", { opacity: 0, duration: 0.55, ease: "power2.out" }, 4.0);
+      tl.from("#scene-openai .hud--top > span", { y: -12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 4.15);
+      tl.from("#scene-openai .section-brand",   { x: -24, opacity: 0, duration: 0.55, ease: "power3.out" }, 4.45);
+      tl.from("#scene-openai .section-name",    { y: 40, opacity: 0, duration: 0.8, ease: "expo.out" }, 4.55);
+      tl.from("#scene-openai .section-accent",  { scaleX: 0, transformOrigin: "left center", duration: 0.8, ease: "expo.out" }, 4.9);
+      tl.from("#scene-openai .section-kicker",  { y: 18, opacity: 0, duration: 0.6, ease: "power2.out" }, 5.25);
+      tl.from("#scene-openai .news-item",       { y: 40, opacity: 0, duration: 0.6, ease: "power3.out", stagger: 0.18 }, 5.35);
+      tl.from("#scene-openai .hud--bot > span", { y: 12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 4.25);
+
+      /* ---------- Scene 3 · Anthropic (16.0 — 28.5) ---------- */
+      tl.from("#scene-anthropic", { opacity: 0, duration: 0.55, ease: "power2.out" }, 16.0);
+      tl.from("#scene-anthropic .hud--top > span", { y: -12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 16.15);
+      tl.from("#scene-anthropic .section-brand",   { x: -24, opacity: 0, duration: 0.55, ease: "power3.out" }, 16.45);
+      tl.from("#scene-anthropic .section-name",    { y: 40, opacity: 0, duration: 0.8, ease: "expo.out" }, 16.55);
+      tl.from("#scene-anthropic .section-accent",  { scaleX: 0, transformOrigin: "left center", duration: 0.8, ease: "expo.out" }, 16.9);
+      tl.from("#scene-anthropic .section-kicker",  { y: 18, opacity: 0, duration: 0.6, ease: "power2.out" }, 17.25);
+      tl.from("#scene-anthropic .news-item",       { y: 40, opacity: 0, duration: 0.6, ease: "power3.out", stagger: 0.18 }, 17.35);
+      tl.from("#scene-anthropic .hud--bot > span", { y: 12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 16.25);
+
+      /* ---------- Scene 4 · Google (28.0 — 40.5) ---------- */
+      tl.from("#scene-google", { opacity: 0, duration: 0.55, ease: "power2.out" }, 28.0);
+      tl.from("#scene-google .hud--top > span", { y: -12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 28.15);
+      tl.from("#scene-google .section-brand",   { x: -24, opacity: 0, duration: 0.55, ease: "power3.out" }, 28.45);
+      tl.from("#scene-google .section-name",    { y: 40, opacity: 0, duration: 0.8, ease: "expo.out" }, 28.55);
+      tl.from("#scene-google .section-accent",  { scaleX: 0, transformOrigin: "left center", duration: 0.9, ease: "expo.out" }, 28.9);
+      tl.from("#scene-google .section-kicker",  { y: 18, opacity: 0, duration: 0.6, ease: "power2.out" }, 29.25);
+      tl.from("#scene-google .news-item",       { y: 40, opacity: 0, duration: 0.6, ease: "power3.out", stagger: 0.18 }, 29.35);
+      tl.from("#scene-google .hud--bot > span", { y: 12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 28.25);
+
+      /* ---------- Scene 5 · Closing (40.0 — 46.0) ---------- */
+      tl.from("#scene-end", { opacity: 0, duration: 0.55, ease: "power2.out" }, 40.0);
+      tl.from("#scene-end .hud--top > span", { y: -12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 40.15);
+      tl.from("#scene-end .end-line",        { y: 50, opacity: 0, duration: 0.9, ease: "expo.out" }, 40.4);
+      tl.from("#scene-end .end-next",        { y: 18, opacity: 0, duration: 0.55, ease: "power3.out" }, 41.2);
+      tl.from("#scene-end .end-date",        { opacity: 0, duration: 0.55, ease: "power2.out" }, 41.55);
+      tl.from("#scene-end .hud--bot > span", { y: 12, opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, 40.25);
+      /* Final scene exit is allowed */
+      tl.to("#scene-end .body",     { opacity: 0, duration: 0.7, ease: "power2.in" }, 45.1);
+      tl.to("#scene-end .hud",      { opacity: 0, duration: 0.7, ease: "power2.in" }, 45.1);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
